@@ -14,11 +14,16 @@ SOFTWARE.
 
 /* ******* Jukebox Mod by Desno365 ******* */
 
+// updates variables
+const CURRENT_VERSION = "r003";
+var latestVersion;
+
 // minecraft variables
 const GameMode = {
 	SURVIVAL: 0,
 	CREATIVE: 1
 };
+const ITEM_CATEGORY_TOOL = 3;
 
 //activity and other Android variables
 var currentActivity = com.mojang.minecraftpe.MainActivity.currentMainActivity.get();
@@ -46,28 +51,40 @@ var discSongs = ["13.ogg", "cat.ogg", "blocks.ogg", "chirp.ogg", "far.ogg", "mal
 
 
 ModPE.setItem(2256, "record_13", 0, "13 Disc", 1);
+Item.setCategory(2256, ITEM_CATEGORY_TOOL);
 
 ModPE.setItem(2257, "record_cat", 0, "Cat Disc", 1);
+Item.setCategory(2257, ITEM_CATEGORY_TOOL);
 
 ModPE.setItem(2258, "record_blocks", 0, "Blocks Disc", 1);
+Item.setCategory(2258, ITEM_CATEGORY_TOOL);
 
 ModPE.setItem(2259, "record_chirp", 0, "Chirp Disc", 1);
+Item.setCategory(2259, ITEM_CATEGORY_TOOL);
 
 ModPE.setItem(2260, "record_far", 0, "Far Disc", 1);
+Item.setCategory(2260, ITEM_CATEGORY_TOOL);
 
 ModPE.setItem(2261, "record_mall", 0, "Mall Disc", 1);
+Item.setCategory(2261, ITEM_CATEGORY_TOOL);
 
 ModPE.setItem(2262, "record_mellohi", 0, "Mellohi Disc", 1);
+Item.setCategory(2262, ITEM_CATEGORY_TOOL);
 
 ModPE.setItem(2263, "record_stal", 0, "Stal Disc", 1);
+Item.setCategory(2263, ITEM_CATEGORY_TOOL);
 
 ModPE.setItem(2264, "record_strad", 0, "Strad Disc", 1);
+Item.setCategory(2264, ITEM_CATEGORY_TOOL);
 
 ModPE.setItem(2265, "record_ward", 0, "Ward Disc", 1);
+Item.setCategory(2265, ITEM_CATEGORY_TOOL);
 
 ModPE.setItem(2266, "record_11", 0, "11 Disc", 1);
+Item.setCategory(2266, ITEM_CATEGORY_TOOL);
 
 ModPE.setItem(2267, "record_wait", 0, "Wait Disc", 1);
+Item.setCategory(2267, ITEM_CATEGORY_TOOL);
 
 
 const JUKEBOX_ID = 84;
@@ -122,6 +139,16 @@ function newLevel()
 		for(var i = 2256; i <= 2267; i++)
 			Player.addItemCreativeInv(i, 1);
 	}
+
+	new java.lang.Thread(new java.lang.Runnable()
+	{
+		run: function()
+		{
+			updateLatestVersionMod();
+			if(latestVersion != CURRENT_VERSION && latestVersion != undefined)
+				updateAvailableUI();
+		}
+	}).start();
 }
 
 function leaveGame()
@@ -234,7 +261,9 @@ function JukeboxClass(x, y, z, disc)
 	{
 		onCompletion: function()
 		{
-			getJukeboxObjectFromXYZ(x, y, z).stopJukebox();
+			var jukebox = getJukeboxObjectFromXYZ(x, y, z);
+			if(jukebox != -1)
+				jukebox.stopJukebox();
 		}
 	});
 	this.player.start();
@@ -244,7 +273,7 @@ function JukeboxClass(x, y, z, disc)
 	{
 		run: function()
 		{
-			for(var ms = 0; ms < 17; ms++) // executed 17 times,
+			for(var ms = 0; ms < 17; ms++) // executed 17 times, 16 different colors, the last one to stop the effect
 			{
 				if(ms < 16)
 				{
@@ -319,10 +348,52 @@ Player.decreaseByOneCarriedItem = function()
 		Entity.setCarriedItem(Player.getEntity(), Player.getCarriedItem(), Player.getCarriedItemCount() - 1, 0);
 }
 
+function updateLatestVersionMod()
+{
+	try
+	{
+		// download content
+		var url = new java.net.URL("https://raw.githubusercontent.com/Desno365/MCPE-scripts/master/jukeboxMOD-version");
+		var connection = url.openConnection();
+ 
+		// get content
+		inputStream = connection.getInputStream();
+ 
+		// read result
+		var loadedVersion = "";
+		var bufferedVersionReader = new java.io.BufferedReader(new java.io.InputStreamReader(inputStream));
+		var rowVersion = "";
+		while((rowVersion = bufferedVersionReader.readLine()) != null)
+		{
+			loadedVersion += rowVersion;
+		}
+		latestVersion = loadedVersion.split(" ")[0];
+ 
+		// close what needs to be closed
+		bufferedVersionReader.close();
+		inputStream.close();
+	} catch(err)
+	{
+		clientMessage("Jukebox Mod: Can't check for updates, please check your Internet connection.");
+		ModPE.log("Jukebox Mod: getLatestVersionMod(): caught an error: " + err);
+	}
+}
+
 function convertDpToPixel(dp)
 {
 	//
 	return Math.round(dp * deviceDensity);
+}
+
+const MARGIN_HORIZONTAL_BIG = 16;
+const MARGIN_HORIZONTAL_SMALL = 4;
+
+function setMarginsLinearLayout(view, left, top, right, bottom)
+{
+	var originalParams = view.getLayoutParams();
+	var newParams = new android.widget.LinearLayout.LayoutParams(originalParams);
+	newParams.setMargins(convertDpToPixel(left), convertDpToPixel(top), convertDpToPixel(right), convertDpToPixel(bottom));
+	view.setLayoutParams(newParams);
 }
 
 //############################################################################
@@ -365,6 +436,71 @@ function missingSoundsUI(soundsText)
 					}
 				}); 
 				layout.addView(exitButton); 
+				
+
+				popup.show();
+			
+			}catch(err)
+			{
+				clientMessage("Error: " + err);
+			}
+		}
+	});
+}
+
+function updateAvailableUI()
+{
+	currentActivity.runOnUiThread(new java.lang.Runnable()
+	{
+		run: function()
+		{
+			try
+			{
+				var layout = new android.widget.LinearLayout(currentActivity);
+				var padding = convertDpToPixel(8);
+				layout.setPadding(padding, padding, padding, padding);
+				layout.setOrientation(android.widget.LinearLayout.VERTICAL);
+
+				var scroll = new android.widget.ScrollView(currentActivity);
+				scroll.addView(layout);
+			
+				var popup = new android.app.Dialog(currentActivity); 
+				popup.setContentView(scroll);
+				popup.setTitle(new android.text.Html.fromHtml("Jukebox Mod: new version"));
+				
+				var updateText = new android.widget.TextView(currentActivity);
+				updateText.setText(new android.text.Html.fromHtml("New version available, you have the " + CURRENT_VERSION + " version and the latest version is " + latestVersion + ".<br>" +
+					"You can find a download link on Desno365's website (press the button to visit it)."));
+				layout.addView(updateText);
+				setMarginsLinearLayout(updateText, 0, MARGIN_HORIZONTAL_SMALL, 0, MARGIN_HORIZONTAL_SMALL);
+
+				var downloadButton = new android.widget.Button(currentActivity); 
+				downloadButton.setText("Visit website"); 
+				downloadButton.setOnClickListener(new android.view.View.OnClickListener()
+				{
+					onClick: function()
+					{
+						var intentBrowser = new android.content.Intent(currentActivity);
+						intentBrowser.setAction(android.content.Intent.ACTION_VIEW);
+						intentBrowser.setData(android.net.Uri.parse("http://desno365.github.io/minecraft/jukebox-mod/"));
+						currentActivity.startActivity(intentBrowser);
+						popup.dismiss();
+					}
+				});
+				layout.addView(downloadButton);
+				setMarginsLinearLayout(downloadButton, 0, MARGIN_HORIZONTAL_SMALL, 0, MARGIN_HORIZONTAL_BIG);
+	
+				var exitButton = new android.widget.Button(currentActivity); 
+				exitButton.setText("Close"); 
+				exitButton.setOnClickListener(new android.view.View.OnClickListener()
+				{
+					onClick: function()
+					{
+						popup.dismiss();
+					}
+				}); 
+				layout.addView(exitButton);
+				setMarginsLinearLayout(exitButton, 0, MARGIN_HORIZONTAL_SMALL, 0, MARGIN_HORIZONTAL_SMALL);
 				
 
 				popup.show();

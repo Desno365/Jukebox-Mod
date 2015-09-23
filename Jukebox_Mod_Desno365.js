@@ -35,9 +35,6 @@ currentActivity.getWindowManager().getDefaultDisplay().getMetrics(metrics);
 var deviceDensity = metrics.density;
 metrics = null;
 
-//number of jukeboxes variable
-var nOfJ = 0;
-
 //"now playing" message variables
 var nowPlayingMessage = "";
 var currentColor = 0;
@@ -156,7 +153,6 @@ function leaveGame()
 	for(var i in jukeboxes)
 		jukeboxes[i].player.reset();
 
-	nOfJ = 0;
 	jukeboxes = [];
 
 	nowPlayingMessage = "";
@@ -207,8 +203,7 @@ function useItem(x, y, z, itemId, blockId, side, itemDamage)
 			//jukebox: start playing
 			try
 			{
-				jukeboxes[nOfJ] = new JukeboxClass(Math.floor(x) + 0.5, Math.floor(y), Math.floor(z) + 0.5, itemId);
-				nOfJ++;
+				jukeboxes.push(new JukeboxClass(Math.floor(x) + 0.5, Math.floor(y), Math.floor(z) + 0.5, itemId));
 				if(Level.getGameMode() == GameMode.SURVIVAL)
 					Player.decreaseByOneCarriedItem();
 			}
@@ -309,7 +304,6 @@ function JukeboxClass(x, y, z, disc)
 		this.ejectDisc();
 		this.player.reset();
 		jukeboxes.splice(jukeboxes.indexOf(this), 1);
-		nOfJ--;
 	}
 
 	this.ejectDisc = function()

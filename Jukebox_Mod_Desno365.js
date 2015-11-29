@@ -15,7 +15,7 @@ SOFTWARE.
 /* ******* Jukebox Mod by Desno365 ******* */
 
 // updates variables
-const CURRENT_VERSION = "r003";
+const CURRENT_VERSION = "r004";
 var latestVersion;
 
 // minecraft variables
@@ -23,7 +23,6 @@ const GameMode = {
 	SURVIVAL: 0,
 	CREATIVE: 1
 };
-const ITEM_CATEGORY_TOOL = 3;
 
 //activity and other Android variables
 var currentActivity = com.mojang.minecraftpe.MainActivity.currentMainActivity.get();
@@ -48,40 +47,52 @@ var discSongs = ["13.ogg", "cat.ogg", "blocks.ogg", "chirp.ogg", "far.ogg", "mal
 
 
 ModPE.setItem(2256, "record_13", 0, "13 Disc", 1);
-Item.setCategory(2256, ITEM_CATEGORY_TOOL);
+Item.setCategory(2256, ItemCategory.TOOL);
+Player.addItemCreativeInv(2256, 1);
 
 ModPE.setItem(2257, "record_cat", 0, "Cat Disc", 1);
-Item.setCategory(2257, ITEM_CATEGORY_TOOL);
+Item.setCategory(2257, ItemCategory.TOOL);
+Player.addItemCreativeInv(2257, 1);
 
 ModPE.setItem(2258, "record_blocks", 0, "Blocks Disc", 1);
-Item.setCategory(2258, ITEM_CATEGORY_TOOL);
+Item.setCategory(2258, ItemCategory.TOOL);
+Player.addItemCreativeInv(2258, 1);
 
 ModPE.setItem(2259, "record_chirp", 0, "Chirp Disc", 1);
-Item.setCategory(2259, ITEM_CATEGORY_TOOL);
+Item.setCategory(2259, ItemCategory.TOOL);
+Player.addItemCreativeInv(2259, 1);
 
 ModPE.setItem(2260, "record_far", 0, "Far Disc", 1);
-Item.setCategory(2260, ITEM_CATEGORY_TOOL);
+Item.setCategory(2260, ItemCategory.TOOL);
+Player.addItemCreativeInv(2260, 1);
 
 ModPE.setItem(2261, "record_mall", 0, "Mall Disc", 1);
-Item.setCategory(2261, ITEM_CATEGORY_TOOL);
+Item.setCategory(2261, ItemCategory.TOOL);
+Player.addItemCreativeInv(2261, 1);
 
 ModPE.setItem(2262, "record_mellohi", 0, "Mellohi Disc", 1);
-Item.setCategory(2262, ITEM_CATEGORY_TOOL);
+Item.setCategory(2262, ItemCategory.TOOL);
+Player.addItemCreativeInv(2262, 1);
 
 ModPE.setItem(2263, "record_stal", 0, "Stal Disc", 1);
-Item.setCategory(2263, ITEM_CATEGORY_TOOL);
+Item.setCategory(2263, ItemCategory.TOOL);
+Player.addItemCreativeInv(2263, 1);
 
 ModPE.setItem(2264, "record_strad", 0, "Strad Disc", 1);
-Item.setCategory(2264, ITEM_CATEGORY_TOOL);
+Item.setCategory(2264, ItemCategory.TOOL);
+Player.addItemCreativeInv(2264, 1);
 
 ModPE.setItem(2265, "record_ward", 0, "Ward Disc", 1);
-Item.setCategory(2265, ITEM_CATEGORY_TOOL);
+Item.setCategory(2265, ItemCategory.TOOL);
+Player.addItemCreativeInv(2265, 1);
 
 ModPE.setItem(2266, "record_11", 0, "11 Disc", 1);
-Item.setCategory(2266, ITEM_CATEGORY_TOOL);
+Item.setCategory(2266, ItemCategory.TOOL);
+Player.addItemCreativeInv(2266, 1);
 
 ModPE.setItem(2267, "record_wait", 0, "Wait Disc", 1);
-Item.setCategory(2267, ITEM_CATEGORY_TOOL);
+Item.setCategory(2267, ItemCategory.TOOL);
+Player.addItemCreativeInv(2267, 1);
 
 
 const JUKEBOX_ID = 84;
@@ -92,6 +103,8 @@ Item.addShapedRecipe(JUKEBOX_ID, 1, 0, [
 	"www",
 	"wdw",
 	"www"], ["w", 5, 0, "d", 264, 0]);
+Item.setCategory(JUKEBOX_ID, ItemCategory.DECORATION);
+Player.addItemCreativeInv(JUKEBOX_ID, 1);
 	
 
 function selectLevelHook()
@@ -128,15 +141,6 @@ function selectLevelHook()
 
 function newLevel()
 {
-	if(Level.getGameMode() == GameMode.CREATIVE)
-	{
-		// crashes in survival
-		Player.addItemCreativeInv(JUKEBOX_ID, 1);
-
-		for(var i = 2256; i <= 2267; i++)
-			Player.addItemCreativeInv(i, 1);
-	}
-
 	new java.lang.Thread(new java.lang.Runnable()
 	{
 		run: function()

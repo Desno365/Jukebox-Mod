@@ -15,7 +15,7 @@ SOFTWARE.
 /* ******* Jukebox Mod by Desno365 ******* */
 
 // updates variables
-const CURRENT_VERSION = "r004";
+const CURRENT_VERSION = "r005";
 var latestVersion;
 
 // minecraft variables
@@ -40,10 +40,10 @@ var currentColor = 0;
 
 //other variables
 const MAX_LOGARITHMIC_VOLUME = 65;
-const JUKEBOX_SONGS_PATH = sdcard + "/games/com.mojang/minecraft-jukebox/";
+const JUKEBOX_SONGS_PATH = sdcard + "/games/com.mojang/jukebox-music/";
 var jukeboxes = [];
 var discNames = ["13 Disc", "Cat Disc", "Blocks Disc", "Chirp Disc", "Far Disc", "Mall Disc", "Mellohi Disc", "Stal Disc", "Strad Disc", "Ward Disc", "11 Disc", "Wait Disc"];
-var discSongs = ["13.ogg", "cat.ogg", "blocks.ogg", "chirp.ogg", "far.ogg", "mall.ogg", "mellohi.ogg", "stal.ogg", "strad.ogg", "ward.ogg", "11.ogg", "wait.ogg"];
+var discSongs = ["13.mp3", "cat.mp3", "blocks.mp3", "chirp.mp3", "far.mp3", "mall.mp3", "mellohi.mp3", "stal.mp3", "strad.mp3", "ward.mp3", "11.mp3", "wait.mp3"];
 
 
 ModPE.setItem(2256, "record_13", 0, "13 Disc", 1);
@@ -105,39 +105,7 @@ Item.addShapedRecipe(JUKEBOX_ID, 1, 0, [
 	"www"], ["w", 5, 0, "d", 264, 0]);
 Item.setCategory(JUKEBOX_ID, ItemCategory.DECORATION);
 Player.addItemCreativeInv(JUKEBOX_ID, 1);
-	
 
-function selectLevelHook()
-{
-	currentActivity.runOnUiThread(new java.lang.Runnable()
-	{
-		run: function()
-		{
-			try
-			{
-				var areSoundsMissing = false;
-				var missingSoundsText = "";
-				var checkSounds = [];
-				for(var i = 0; i <= 11; i++)
-				{
-					checkSounds[i] = new java.io.File(JUKEBOX_SONGS_PATH + discSongs[i]);
-					if(!checkSounds[i].exists())
-					{
-						areSoundsMissing = true;
-						missingSoundsText += discSongs[i];
-						missingSoundsText += ", ";
-					}
-				}
-				
-				if(areSoundsMissing)
-					missingSoundsUI(missingSoundsText.substring(0, missingSoundsText.length - 2));
-			}catch(err)
-			{
-				clientMessage("Error: " + err);
-			}
-		}
-	});
-}
 
 function newLevel()
 {
@@ -239,10 +207,12 @@ function destroyBlock(x, y, z)
 		checkBlockJukebox.stopJukebox();
 }
 
+
 //############################################################################
 // Added functions (No GUI and No render)
 //############################################################################
 
+//########## JUKEBOX functions ##########
 function JukeboxClass(x, y, z, disc)
 {
 	this.x = x;
@@ -337,7 +307,82 @@ function getDiscName(disc)
 		if(disc - 2256 == i)
 			return discNames[i];
 }
+//########## JUKEBOX functions - END ##########
 
+
+//########## FILE functions ##########
+function deleteFile(path)
+{
+	var file = new java.io.File(path);
+
+	if(file.isDirectory())
+	{
+		var directoryFiles = file.listFiles();
+		for(var i in directoryFiles)
+		{
+			deleteFile(directoryFiles[i].getAbsolutePath());
+		}
+		file.delete();
+	}
+
+	if(file.isFile())
+		file.delete();
+}
+
+function doesFileExist(path)
+{
+	var file = new java.io.File(path);
+	return file.exists();
+}
+
+function isFileEmpty(path)
+{
+	var file = new java.io.File(path);
+	if(file.length() > 0)
+		return false;
+	else
+		return true;
+}
+
+function writeFileFromByteArray(byteArray, path)
+{
+	// create file and parent directories
+	var file = new java.io.File(path);
+	if(file.exists())
+		file.delete();
+	file.getParentFile().mkdirs();
+	file.createNewFile();
+
+	// write to file
+	var stream = new java.io.FileOutputStream(file);
+	stream.write(byteArray);
+	stream.close();
+
+	byteArray = null;
+}
+
+function writeFileFromInputStream(inputStream, path)
+{
+	// create file and parent directories
+	var file = new java.io.File(path);
+	if(file.exists())
+		file.delete();
+	file.getParentFile().mkdirs();
+	file.createNewFile();
+
+	// write to file
+	var outputStream = new java.io.FileOutputStream(file);
+	var read = 0;
+	var bytes = java.lang.reflect.Array.newInstance(java.lang.Byte.TYPE, 1024);
+	while ((read = inputStream.read(bytes)) != -1) {
+		outputStream.write(bytes, 0, read);
+	}
+	outputStream.close();
+}
+//########## FILE functions - END ##########
+
+
+//########## MISC functions ##########
 Player.decreaseByOneCarriedItem = function()
 {
 	if(Player.getCarriedItemCount() == 1)
@@ -377,11 +422,24 @@ function updateLatestVersionMod()
 	}
 }
 
+function getLogText()
+{
+	//
+	return("Jukebox Mod: ");
+}
+
 function convertDpToPixel(dp)
 {
 	//
 	return Math.round(dp * deviceDensity);
 }
+
+//########## MISC functions - END ##########
+
+
+//########################################################################################################################################################
+// Utils of UI functions
+//########################################################################################################################################################
 
 const MARGIN_HORIZONTAL_BIG = 16;
 const MARGIN_HORIZONTAL_SMALL = 4;
@@ -394,57 +452,10 @@ function setMarginsLinearLayout(view, left, top, right, bottom)
 	view.setLayoutParams(newParams);
 }
 
+
 //############################################################################
-// GUI functions
+// UI functions
 //############################################################################
-
-function missingSoundsUI(soundsText)
-{
-	currentActivity.runOnUiThread(new java.lang.Runnable()
-	{
-		run: function()
-		{
-			try
-			{
-				var layout = new android.widget.LinearLayout(currentActivity);
-				var padding = convertDpToPixel(8);
-				layout.setPadding(padding, padding, padding, padding);
-				layout.setOrientation(android.widget.LinearLayout.VERTICAL);
-
-				var scroll = new android.widget.ScrollView(currentActivity);
-				scroll.addView(layout);
-			
-				var popup = new android.app.Dialog(currentActivity); 
-				popup.setContentView(scroll);
-				popup.setTitle(new android.text.Html.fromHtml("Jukebox Mod: ERROR"));
-				
-				var missingText = new android.widget.TextView(currentActivity);
-				missingText.setText(new android.text.Html.fromHtml("<b>Jukebox Mod by Desno365 ERROR</b>: missing sounds.<br> " +
-				"These sounds are missing: " + soundsText + ".<br><br>" +
-				'<b><i>IMPORTANT</b></i>: you have to place the "minecraft-jukebox" folder (the folder is inside the zip that contains the mod) in "sdcard/games/com.mojang/".'));
-				layout.addView(missingText);
-				
-				var exitButton = new android.widget.Button(currentActivity); 
-				exitButton.setText("Close"); 
-				exitButton.setOnClickListener(new android.view.View.OnClickListener()
-				{
-					onClick: function()
-					{
-						popup.dismiss();
-					}
-				}); 
-				layout.addView(exitButton); 
-				
-
-				popup.show();
-			
-			}catch(err)
-			{
-				clientMessage("Error: " + err);
-			}
-		}
-	});
-}
 
 function updateAvailableUI()
 {
@@ -510,3 +521,296 @@ function updateAvailableUI()
 		}
 	});
 }
+
+
+//########################################################################################################################################################
+// Sounds installation
+//########################################################################################################################################################
+
+var SoundsInstaller = {
+
+	sounds:
+	{
+		version: 1,
+		soundArray: [
+			// { fileName: "", file: "" },
+			// { fileName: "", fileDirectory: "", file: "" },
+
+			{
+				fileName: "13.mp3"
+			},
+			{
+				fileName: "cat.mp3"
+			},
+			{
+				fileName: "blocks.mp3"
+			},
+			{
+				fileName: "chirp.mp3"
+			},
+			{
+				fileName: "far.mp3"
+			},
+			{
+				fileName: "mall.mp3"
+			},
+			{
+				fileName: "mellohi.mp3"
+			},
+			{
+				fileName: "stal.mp3"
+			},
+			{
+				fileName: "strad.mp3"
+			},
+			{
+				fileName: "ward.mp3"
+			},
+			{
+				fileName: "11.mp3"
+			},
+			{
+				fileName: "wait.mp3"
+			},
+		]
+	},
+
+	versionFileName: "version.txt",
+
+	pathInSdcard: JUKEBOX_SONGS_PATH,
+
+	pathInTexturePack: "/jukebox-music/",
+
+
+	checkAtStartup: function()
+	{
+		ModPE.log(getLogText() + "checkAtStartup(): started check.");
+
+		if(SoundsInstaller.needsInstallation())
+		{
+			ModPE.log(getLogText() + "checkAtStartup(): sounds NOT correctly installed!");
+
+			SoundsInstaller.install();
+		} else
+		{
+			ModPE.log(getLogText() + "checkAtStartup(): sounds correctly installed.");
+		}
+	},
+
+
+	needsInstallation: function()
+	{
+		if(doesFileExist(SoundsInstaller.pathInSdcard + SoundsInstaller.versionFileName))
+		{
+			var versionOfSounds = SoundsInstaller.getInstalledVersion();
+			ModPE.log(getLogText() + "needsInstallation(): version file found, version: " + versionOfSounds);
+
+			// check version
+			if(versionOfSounds == SoundsInstaller.sounds.version)
+			{
+				ModPE.log(getLogText() + "needsInstallation(): version of the file matches saved version.");
+				return !SoundsInstaller.areSoundsPresent();
+			} else
+			{
+				ModPE.log(getLogText() + "needsInstallation(): version of the file is different than saved version.");
+				return true;
+			}
+		} else
+		{
+			ModPE.log(getLogText() + "needsInstallation(): version file not found.");
+			return true;
+		}
+	},
+
+	getInstalledVersion: function()
+	{
+		var versionFile = new java.io.File(SoundsInstaller.pathInSdcard + SoundsInstaller.versionFileName);
+		if(versionFile.exists())
+		{
+			var loadedVersion = "";
+			var streamVersionInput = new java.io.FileInputStream(versionFile);
+			var bufferedVersionReader = new java.io.BufferedReader(new java.io.InputStreamReader(streamVersionInput));
+			var rowVersion = "";
+			while((rowVersion = bufferedVersionReader.readLine()) != null)
+			{
+				loadedVersion += rowVersion;
+			}
+			var loadedVersion = loadedVersion.split(" ");
+			bufferedVersionReader.close();
+
+			ModPE.log(getLogText() + "getInstalledVersion(): text on the version file: " + loadedVersion);
+			return parseInt(loadedVersion);
+		} else
+		{
+			print("Bug found: remember that getInstalledVersion() should be used only when version file exists.");
+			return -1;
+		}
+	},
+
+	areSoundsPresent: function()
+	{
+		var arrayOfMissingSounds = SoundsInstaller.checkMissingSounds();
+
+		if(arrayOfMissingSounds.length == 0)
+		{
+			// yeah, all sounds needed have been found
+			ModPE.log(getLogText() + "areSoundsPresent(): all sounds present.");
+			return true;
+		} else
+		{
+			// not correctly installed :(
+			ModPE.log(getLogText() + "areSoundsPresent(): some sounds are missing.");
+			ModPE.log(getLogText() + "areSoundsPresent(): missing: " + arrayOfMissingSounds.toString());
+			return false;
+		}
+	},
+
+	checkMissingSounds: function()
+	{
+		var arrayOfErrors = [];
+		for(var i in SoundsInstaller.sounds.soundArray)
+		{
+			if(SoundsInstaller.sounds.soundArray[i].fileDirectory == undefined || SoundsInstaller.sounds.soundArray[i].fileDirectory == null)
+			{
+				// file is inside the general sound folder
+				if(!doesFileExist(SoundsInstaller.pathInSdcard + SoundsInstaller.sounds.soundArray[i].fileName))
+				{
+					if(arrayOfErrors.indexOf(SoundsInstaller.sounds.soundArray[i].fileName) == -1)
+						arrayOfErrors.push(SoundsInstaller.sounds.soundArray[i].fileName);
+				} else
+				{
+					// file exists, maybe is empty?
+					if(isFileEmpty(SoundsInstaller.pathInSdcard + SoundsInstaller.sounds.soundArray[i].fileName))
+					{
+						if(arrayOfErrors.indexOf(SoundsInstaller.sounds.soundArray[i].fileName) == -1)
+							arrayOfErrors.push(SoundsInstaller.sounds.soundArray[i].fileName);
+					}
+				}
+			} else
+			{
+				// file is inside another folder
+				if(!doesFileExist(SoundsInstaller.pathInSdcard + SoundsInstaller.sounds.soundArray[i].fileDirectory + "/" + SoundsInstaller.sounds.soundArray[i].fileName))
+				{
+					if(arrayOfErrors.indexOf(SoundsInstaller.sounds.soundArray[i].fileName) == -1)
+						arrayOfErrors.push(SoundsInstaller.sounds.soundArray[i].fileName);
+				} else
+				{
+					// file exists, maybe is empty?
+					if(isFileEmpty(SoundsInstaller.pathInSdcard + SoundsInstaller.sounds.soundArray[i].fileDirectory + "/" + SoundsInstaller.sounds.soundArray[i].fileName))
+					{
+						if(arrayOfErrors.indexOf(SoundsInstaller.sounds.soundArray[i].fileName) == -1)
+							arrayOfErrors.push(SoundsInstaller.sounds.soundArray[i].fileName);
+					}
+				}
+			}
+		}
+
+		return arrayOfErrors;
+	},
+
+	install: function()
+	{
+		new java.lang.Thread(new java.lang.Runnable()
+		{
+			run: function()
+			{
+				deleteFile(SoundsInstaller.pathInSdcard); //delete previous files if present
+
+				for(var i in SoundsInstaller.sounds.soundArray)
+				{
+					// save file on the sdcard
+					if(SoundsInstaller.sounds.soundArray[i].fileDirectory == undefined || SoundsInstaller.sounds.soundArray[i].fileDirectory == null)
+					{
+						// file is inside the general sound folder
+						try
+						{
+							writeFileFromInputStream(ModPE.openInputStreamFromTexturePack(SoundsInstaller.pathInTexturePack + SoundsInstaller.sounds.soundArray[i].fileName), SoundsInstaller.pathInSdcard + SoundsInstaller.sounds.soundArray[i].fileName);
+						} catch(e)
+						{
+							// probably texture pack not installed
+							ModPE.log(getLogText() + "error while writing sound to sdcard (1): " + e);
+						}
+					} else
+					{
+						// file is inside another folder
+						try
+						{
+							writeFileFromInputStream(ModPE.openInputStreamFromTexturePack(SoundsInstaller.pathInTexturePack + SoundsInstaller.sounds.soundArray[i].fileDirectory + "/" + SoundsInstaller.sounds.soundArray[i].fileName), SoundsInstaller.pathInSdcard + SoundsInstaller.sounds.soundArray[i].fileDirectory + "/" + SoundsInstaller.sounds.soundArray[i].fileName);
+						} catch(e)
+						{
+							// probably texture pack not installed
+							ModPE.log(getLogText() + "error while writing sound to sdcard (2): " + e);
+						}
+					}
+				}
+
+				var nomediaFile = new java.io.File(SoundsInstaller.pathInSdcard + ".nomedia");
+				if(!nomediaFile.exists())
+					nomediaFile.createNewFile();
+
+				// put file version
+				SoundsInstaller.saveFileWithVersion();
+
+				// END INSTALLATION
+				SoundsInstaller.onFinishInstallation();
+			}
+		}).start();
+	},
+
+
+	saveFileWithVersion: function()
+	{
+		var versionSaveFile = new java.io.File(SoundsInstaller.pathInSdcard + SoundsInstaller.versionFileName);
+		if(versionSaveFile.exists())
+			versionSaveFile.delete();
+		versionSaveFile.createNewFile();
+
+		var streamOutputVersion = new java.io.FileOutputStream(versionSaveFile);
+		var streamWriterVersion = new java.io.OutputStreamWriter(streamOutputVersion);
+
+		streamWriterVersion.append(SoundsInstaller.sounds.version + "  These sounds are used by the Jukebox Mod, made by Desno365");
+		streamWriterVersion.close();
+		streamOutputVersion.close();
+	},
+
+
+	onFinishInstallation: function()
+	{
+		ModPE.log(getLogText() + "Finished sounds installation. Re-checking sounds...");
+
+		var notSuccess = SoundsInstaller.needsInstallation();
+		if(notSuccess)
+		{
+			currentActivity.runOnUiThread(new java.lang.Runnable() {
+				run: function() {
+					android.widget.Toast.makeText(currentActivity, new android.text.Html.fromHtml("<b>Jukebox</b>: An error has happened during sounds installation of the Jukebox Mod, please check if the mod's Texture Pack is enabled."), android.widget.Toast.LENGTH_LONG).show();
+				}
+			});
+			ModPE.log(getLogText() + "Sounds HAVEN'T been correctly installed!");
+		} else
+		{
+			ModPE.log(getLogText() + "Sounds have been correctly installed. Very good.");
+		}
+	},
+};
+
+
+//########################################################################################################################################################
+// Things to do at startup
+//########################################################################################################################################################
+
+// check sounds
+currentActivity.runOnUiThread(new java.lang.Runnable(
+{
+	run: function()
+	{
+		new android.os.Handler().postDelayed(new java.lang.Runnable(
+		{
+			run: function()
+			{
+				SoundsInstaller.checkAtStartup();
+			}
+		}), 750);
+	}
+}));
+

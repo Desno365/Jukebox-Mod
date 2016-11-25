@@ -140,48 +140,40 @@ function modTick()
 		if(jukeboxes[i].countdown >= 10)
 		{
 			jukeboxes[i].countdown = 0;
-			var distancePJ = Math.sqrt( (Math.pow(jukeboxes[i].x - Player.getX(), 2)) + (Math.pow(jukeboxes[i].y - Player.getY(), 2)) + (Math.pow(jukeboxes[i].z - Player.getZ(), 2) ));
-			if(distancePJ > MAX_LOGARITHMIC_VOLUME)
-			{
-				jukeboxes[i].player.setVolume(0.0, 0.0);
-			}
-			else
-			{
-				var volume = 1 - (Math.log(distancePJ) / Math.log(MAX_LOGARITHMIC_VOLUME));
-				jukeboxes[i].player.setVolume(volume, volume);
-			}
+
+			jukeboxes[i].setVolumeBasedOnDistance();
 		}
 	}
 }
 
 function useItem(x, y, z, itemId, blockId, side, itemDamage)
 {
-	//is block a jukebox?
+	// is block a jukebox?
 	if(blockId == JUKEBOX_ID)
 	{
 		preventDefault();
 
-		//is block a playing jukebox?
+		// is block a playing jukebox?
 		var checkBlockJukebox = getJukeboxObjectFromXYZ(x, y, z);
 		if(checkBlockJukebox != -1)
 		{
 			checkBlockJukebox.stopJukebox();
-			return;
-		}
-
-		//is the player carrying a disc?
-		if(itemId >= 2256 && itemId <= 2267)
+		} else
 		{
-			//jukebox: start playing
-			try
+			// jukebox not playing, is the player carrying a disc?
+			if(itemId >= 2256 && itemId <= 2267)
 			{
-				jukeboxes.push(new JukeboxClass(Math.floor(x) + 0.5, Math.floor(y), Math.floor(z) + 0.5, itemId));
-				if(Level.getGameMode() == GameMode.SURVIVAL)
-					Player.decreaseByOneCarriedItem();
-			}
-			catch(err)
-			{
-				ModPE.showTipMessage("Jukebox: Sounds not installed!");
+				// jukebox: start playing
+				try
+				{
+					jukeboxes.push(new JukeboxPlayerClass(Math.floor(x) + 0.5, Math.floor(y), Math.floor(z) + 0.5, itemId));
+					if(Level.getGameMode() == GameMode.SURVIVAL)
+						Player.decreaseByOneCarriedItem();
+				}
+				catch(err)
+				{
+					ModPE.showTipMessage("Jukebox: Sounds not installed!");
+				}
 			}
 		}
 	}
@@ -213,7 +205,7 @@ function destroyBlock(x, y, z)
 //############################################################################
 
 //########## JUKEBOX functions ##########
-function JukeboxClass(x, y, z, disc)
+function JukeboxPlayerClass(x, y, z, disc)
 {
 	this.x = x;
 	this.y = y;
@@ -237,6 +229,7 @@ function JukeboxClass(x, y, z, disc)
 	});
 	this.player.start();
 
+	// show Now playing message
 	nowPlayingMessage = "Now playing: C418 - " + getDiscName(disc);
 	currentActivity.runOnUiThread(new java.lang.Runnable(
 	{
@@ -272,7 +265,22 @@ function JukeboxClass(x, y, z, disc)
 		}
 	}));
 
+	// set volume of the player based on distance of the player from the jukebox
+	this.setVolumeBasedOnDistance = function()
+	{
+		var distancePlayerJukebox = Math.sqrt( Math.pow(this.x - Player.getX(), 2) + Math.pow(this.y - Player.getY(), 2) + Math.pow(this.z - Player.getZ(), 2) );
+		if(distancePlayerJukebox > MAX_LOGARITHMIC_VOLUME)
+		{
+			this.player.setVolume(0.0, 0.0);
+		}
+		else
+		{
+			var volume = 1 - (Math.log(distancePlayerJukebox) / Math.log(MAX_LOGARITHMIC_VOLUME));
+			this.player.setVolume(volume, volume);
+		}
+	}
 
+	// eject the disc, stop the player and remove the Jukebox object
 	this.stopJukebox = function()
 	{
 		this.ejectDisc();

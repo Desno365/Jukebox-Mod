@@ -123,7 +123,7 @@ function newLevel()
 function leaveGame()
 {
 	for(var i in jukeboxes)
-		jukeboxes[i].player.reset();
+		jukeboxes[i].player.release();
 
 	jukeboxes = [];
 
@@ -172,7 +172,7 @@ function useItem(x, y, z, itemId, blockId, side, itemDamage)
 				}
 				catch(err)
 				{
-					ModPE.showTipMessage("Jukebox: Sounds not installed!");
+					clientMessage("Jukebox: Sounds not installed!");
 				}
 			}
 		}
@@ -214,13 +214,12 @@ function JukeboxPlayerClass(x, y, z, disc)
 	this.disc = disc;
 
 	this.player = new android.media.MediaPlayer();
-	this.player.reset();
 	this.player.setDataSource(JUKEBOX_SONGS_PATH + getFileNameFromDiscId(disc));
-	this.player.prepare();
 	this.player.setVolume(1.0, 1.0);
+	this.player.prepare();
 	this.player.setOnCompletionListener(new android.media.MediaPlayer.OnCompletionListener()
 	{
-		onCompletion: function()
+		onCompletion: function(mp)
 		{
 			var jukebox = getJukeboxObjectFromXYZ(x, y, z);
 			if(jukebox != -1)
@@ -272,8 +271,7 @@ function JukeboxPlayerClass(x, y, z, disc)
 		if(distancePlayerJukebox > MAX_LOGARITHMIC_VOLUME)
 		{
 			this.player.setVolume(0.0, 0.0);
-		}
-		else
+		} else
 		{
 			var volume = 1 - (Math.log(distancePlayerJukebox) / Math.log(MAX_LOGARITHMIC_VOLUME));
 			this.player.setVolume(volume, volume);
@@ -283,8 +281,9 @@ function JukeboxPlayerClass(x, y, z, disc)
 	// eject the disc, stop the player and remove the Jukebox object
 	this.stopJukebox = function()
 	{
+		this.player.release();
+		this.player = null;
 		this.ejectDisc();
-		this.player.reset();
 		jukeboxes.splice(jukeboxes.indexOf(this), 1);
 	}
 

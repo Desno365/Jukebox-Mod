@@ -154,7 +154,7 @@ function deathHook(murderer, victim)
 function destroyBlock(x, y, z, side)
 {
 	// stop jukebox when destroyed
-	JukeboxHooks.destroyBlock();
+	JukeboxHooks.destroyBlock(x, y, z);
 }
 
 

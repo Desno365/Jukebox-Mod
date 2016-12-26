@@ -122,61 +122,20 @@ function newLevel()
 
 function leaveGame()
 {
-	for(var i in jukeboxes)
-		jukeboxes[i].player.release();
-
-	jukeboxes = [];
-
-	nowPlayingMessage = "";
-	currentColor = 0;
+	// reset jukebox variables
+	JukeboxHooks.leaveGame();
 }
 
 function modTick()
 {
-	// jukebox sound
-	for(var i in jukeboxes)
-	{
-		jukeboxes[i].countdown++;
-		if(jukeboxes[i].countdown >= 10)
-		{
-			jukeboxes[i].countdown = 0;
-
-			jukeboxes[i].setVolumeBasedOnDistance();
-		}
-	}
+	// set volume of jukeboxes
+	JukeboxHooks.modTick();
 }
 
-function useItem(x, y, z, itemId, blockId, side, itemDamage)
+function useItem(x, y, z, itemId, blockId, side, itemDamage, blockDamage)
 {
-	// is block a jukebox?
-	if(blockId == JUKEBOX_ID)
-	{
-		preventDefault();
-
-		// is block a playing jukebox?
-		var checkBlockJukebox = getJukeboxObjectFromXYZ(x, y, z);
-		if(checkBlockJukebox != -1)
-		{
-			checkBlockJukebox.stopJukebox();
-		} else
-		{
-			// jukebox not playing, is the player carrying a disc?
-			if(itemId >= 2256 && itemId <= 2267)
-			{
-				// jukebox: start playing
-				try
-				{
-					jukeboxes.push(new JukeboxPlayerClass(Math.floor(x) + 0.5, Math.floor(y), Math.floor(z) + 0.5, itemId));
-					if(Level.getGameMode() == GameMode.SURVIVAL)
-						Player.decreaseByOneCarriedItem();
-				}
-				catch(err)
-				{
-					clientMessage("Jukebox: Sounds not installed!");
-				}
-			}
-		}
-	}
+	// use jukebox
+	JukeboxHooks.useItem(x, y, z, itemId, blockId);
 }
 
 function deathHook(murderer, victim)
@@ -192,11 +151,10 @@ function deathHook(murderer, victim)
 	}
 }
 
-function destroyBlock(x, y, z)
+function destroyBlock(x, y, z, side)
 {
-	var checkBlockJukebox = getJukeboxObjectFromXYZ(x, y, z);
-	if(checkBlockJukebox != -1)
-		checkBlockJukebox.stopJukebox();
+	// stop jukebox when destroyed
+	JukeboxHooks.destroyBlock();
 }
 
 
@@ -314,6 +272,71 @@ function getDiscName(disc)
 		if(disc - 2256 == i)
 			return discNames[i];
 }
+
+var JukeboxHooks = {
+
+	leaveGame: function()
+	{
+		for(var i in jukeboxes)
+			jukeboxes[i].player.release();
+		jukeboxes = [];
+		nowPlayingMessage = "";
+		currentColor = 0;
+	},
+
+	modTick: function()
+	{
+		for(var i in jukeboxes)
+		{
+			jukeboxes[i].countdown++;
+			if(jukeboxes[i].countdown >= 10)
+			{
+				jukeboxes[i].countdown = 0;
+				jukeboxes[i].setVolumeBasedOnDistance();
+			}
+		}
+	},
+
+	useItem: function(x, y, z, itemId, blockId)
+	{
+		// is block a jukebox?
+		if(blockId == JUKEBOX_ID)
+		{
+			preventDefault();
+
+			// is block a playing jukebox?
+			var checkBlockJukebox = getJukeboxObjectFromXYZ(x, y, z);
+			if(checkBlockJukebox != -1)
+			{
+				checkBlockJukebox.stopJukebox();
+			} else
+			{
+				// jukebox not playing, is the player carrying a disc?
+				if(itemId >= 2256 && itemId <= 2267)
+				{
+					// jukebox: start playing
+					try
+					{
+						jukeboxes.push(new JukeboxPlayerClass(Math.floor(x) + 0.5, Math.floor(y), Math.floor(z) + 0.5, itemId));
+						if(Level.getGameMode() == GameMode.SURVIVAL)
+							Player.decreaseByOneCarriedItem();
+					}
+					catch(err)
+					{
+						clientMessage("Jukebox: Sounds not installed!");
+					}
+				}
+			}
+		}
+	},
+
+	destroyBlock: function(x, y, z)
+	{
+		var checkBlockJukebox = getJukeboxObjectFromXYZ(x, y, z);
+		if(checkBlockJukebox != -1)
+			checkBlockJukebox.stopJukebox();
+	}
+};
 //########## JUKEBOX functions - END ##########
 
 
